@@ -1,0 +1,36 @@
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Instrument+Serif:ital@0;1&family=Londrina+Solid:wght@100;300;400;900&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-figtree: "Figtree", sans-serif;
+  --font-londrina: "Londrina Solid", sans-serif;
+  --font-instrument: "Instrument Serif", serif;
+  --color-yellow: #ffcf11;
+  --color-blue: #032ca6;
+  --color-white: #f4f4f6;
+  --color-black: #1d1d1b;
+}
+
+:root {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-dmsans);
+}
+
+h1 {
+  font-family: var(--font-londrina);
+}
+
+h2 {
+  font-family: var(--font-instrument);
+}
+
+h3 {
+  font-family: var(--font-figtree);
+}
+
+p {
+  font-family: var(--font-figtree);
+}
