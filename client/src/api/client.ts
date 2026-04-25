@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: "http://localhost:6767",
+  baseURL: "https://lab-4-ecosystems-git-main-alejmmtzs-projects.vercel.app/",
 });
 
 api.interceptors.request.use(
