@@ -1,7 +1,18 @@
 import axios from "axios";
 
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const isLocalhost =
+  typeof window !== "undefined" &&
+  ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+const resolvedApiBaseUrl = rawApiBaseUrl
+  ? rawApiBaseUrl.replace(/\/+$/, "")
+  : isLocalhost
+    ? "http://localhost:6767"
+    : "";
+
 export const api = axios.create({
-  baseURL: "https://lab-4-ecosystems-git-main-alejmmtzs-projects.vercel.app/",
+  baseURL: resolvedApiBaseUrl,
 });
 
 api.interceptors.request.use(
