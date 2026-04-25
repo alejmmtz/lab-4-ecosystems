@@ -14,7 +14,7 @@ export default function ProtectedRoute({
   const user = getCurrentUser();
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   if (user.role !== allowedRole) {

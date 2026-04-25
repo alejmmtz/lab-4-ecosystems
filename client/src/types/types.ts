@@ -14,10 +14,21 @@ export interface GeoPoint {
 }
 
 export enum OrderStatus {
-  CREATED = "Created",
-  IN_DELIVERY = "Delivery",
-  DELIVERED = "Delivered",
+  CREATED = "created",
+  IN_DELIVERY = "in_delivery",
+  DELIVERED = "delivered",
 }
+
+export enum OrderBroadcastEvent {
+  POSITION = "delivery:position",
+  STATUS = "order:status",
+}
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  [OrderStatus.CREATED]: "Creado",
+  [OrderStatus.IN_DELIVERY]: "En entrega",
+  [OrderStatus.DELIVERED]: "Entregado",
+};
 
 export interface OrderItem {
   id: number;
@@ -32,19 +43,19 @@ export interface Order {
   status: OrderStatus;
   total: number;
   destination: GeoPoint;
-  deliveryPosition?: GeoPoint | null;
+  deliveryPosition: GeoPoint | null;
   consumerId: string;
   storeId: number;
-  deliveryId?: string | null;
-  createdAt?: string;
-  updatedAt?: string;
+  deliveryId: string | null;
+  createdAt: string;
+  updatedAt: string;
   items?: OrderItem[];
 }
 
 export interface CreateOrderDTO {
   storeId: number;
   destination: GeoPoint;
-  items: { productId: number; quantity: number }[];
+  items: { productId: number; quantity: number; unitPrice?: number }[];
 }
 
 export interface UpdatePositionDTO {
@@ -52,9 +63,20 @@ export interface UpdatePositionDTO {
   lng: number;
 }
 
-export interface PositionBroadcastPayload {
+export interface OrderPositionBroadcastPayload {
   lat: number;
   lng: number;
+}
+
+export interface OrderStatusBroadcastPayload {
+  status: OrderStatus;
+  deliveryId: string | null;
+}
+
+export interface UpdateOrderPositionResponse {
+  order: Order;
+  arrived: boolean;
+  distanceMeters: number;
 }
 
 export type StoreStatus = "open" | "closed";

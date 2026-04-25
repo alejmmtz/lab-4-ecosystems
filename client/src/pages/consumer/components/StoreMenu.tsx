@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { useState, useEffect } from "react";
 import { api } from "../../../api/client";
 import { type Product } from "../../../types/types";
@@ -82,7 +83,6 @@ export default function StoreMenu({ storeId, onOrderSuccess }: StoreMenuProps) {
   );
   const total = subtotal > 0 ? subtotal + TIP : 0;
   const totalItems = cart.reduce((acc, i) => acc + i.quantity, 0);
-
   const handleCheckout = async () => {
     if (!cart.length || !destination) return;
     setSubmitting(true);
@@ -90,7 +90,8 @@ export default function StoreMenu({ storeId, onOrderSuccess }: StoreMenuProps) {
 
     try {
       const payload = {
-        storeId,
+        // 1. Forzamos a que storeId sea un número para evitar errores en la base de datos
+        storeId: Number(storeId),
         subtotal,
         total,
         tip: TIP,
@@ -98,15 +99,19 @@ export default function StoreMenu({ storeId, onOrderSuccess }: StoreMenuProps) {
         address: "Ubicación del mapa",
         indications: "",
         items: cart.map((i) => ({
+          // 2. Enviamos tanto 'productId' como 'id' para cubrir lo que el backend espere
           productId: i.product.id,
+          id: i.product.id,
           quantity: i.quantity,
+          // 3. Enviamos tanto 'unitPrice' como 'price'
           unitPrice: i.product.price,
+          price: i.product.price,
         })),
       };
 
-      console.log("Enviando orden:", payload);
+      console.log("Enviando orden corregida:", payload);
 
-      await api.post("/api/order", payload);
+      await api.post("/api/orders", payload);
 
       setCart([]);
       setDestination(null);
@@ -118,11 +123,16 @@ export default function StoreMenu({ storeId, onOrderSuccess }: StoreMenuProps) {
         setSuccess(false);
         setIsCartOpen(false);
       }, 4000);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      const serverError =
-        err.response?.data?.message || "Error al procesar la orden";
-      console.error("Error del backend:", err.response?.data);
+    } catch (error: unknown) {
+      // ... resto de tu manejo de errores (igual que antes)
+      const serverError = isAxiosError(error)
+        ? error.response?.data?.message || "Error al procesar la orden"
+        : "Error al procesar la orden";
+      const errorPayload = isAxiosError(error)
+        ? error.response?.data
+        : undefined;
+
+      console.error("Error del backend:", errorPayload);
       setError(serverError);
     } finally {
       setSubmitting(false);

@@ -1,19 +1,20 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { LocateFixed } from "lucide-react";
 import { api, getCurrentUser } from "../../api/client";
-import { type Order, type Store } from "../../types/types";
-import Navbar from "../components/NavBar";
+import { OrderStatus, type Order, type Store } from "../../types/types";
 import SectionHeader from "../components/SectionHeader";
 import EmptyState from "../components/EmptyState";
 import OrderCard from "../components/OrderCard";
+import TrackingOrderPanel from "../components/TrackingOrderPanel";
 import StoreList from "./components/StoreList";
 import StoreMenu from "./components/StoreMenu";
 import LiveTracker from "./components/LiveTracker";
-import toast from "react-hot-toast";
-import { LocateFixed } from "lucide-react";
+import Navbar from "../components/NavBarConsumer";
+
 export default function Consumer() {
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
-
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [stores, setStores] = useState<Store[]>([]);
 
@@ -22,60 +23,64 @@ export default function Consumer() {
 
   useEffect(() => {
     if (!user || user.role !== "consumer") {
-      navigate("/");
+      navigate("/auth", { replace: true });
     }
-  }, [user.id, navigate, user]);
+  }, [navigate, user, user?.role]);
 
-  const fetchMyOrders = () => {
-    api
-      .get("/api/order")
-      .then((res) => setMyOrders(res.data))
-      .catch(console.error);
-  };
+  const fetchMyOrders = useCallback(async () => {
+    try {
+      const response = await api.get<Order[]>("/api/orders");
+      setMyOrders(response.data);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    }
+  }, []);
 
   useEffect(() => {
-    if (user?.id && user.role === "consumer") {
-      api
-        .get("/api/store")
-        .then((res) => setStores(res.data))
-        .catch(console.error);
-
-      fetchMyOrders();
+    if (!user || user.role !== "consumer") {
+      return;
     }
-  }, [user?.id, user.role]);
-  useEffect(() => {
-    if (user?.id && user.role === "consumer") {
-      api
-        .get("/api/store")
-        .then((res) => setStores(res.data))
-        .catch(console.error);
 
-      api
-        .get("/api/order")
-        .then((res) => setMyOrders(res.data))
-        .catch(console.error);
-    }
-  }, [user?.id, user.role]);
+    const loadConsumerData = async () => {
+      try {
+        const [storeResponse, orderResponse] = await Promise.all([
+          api.get<Store[]>("/api/store"),
+          api.get<Order[]>("/api/orders"),
+        ]);
 
-  if (!user || user.role !== "consumer") return null;
+        setStores(storeResponse.data);
+        setMyOrders(orderResponse.data);
+      } catch (error) {
+        console.error("Error loading consumer dashboard:", error);
+      }
+    };
+
+    void loadConsumerData();
+  }, [user, user?.id, user?.role]);
+
+  if (!user || user.role !== "consumer") {
+    return null;
+  }
 
   const selectedStore = stores.find((store) => store.id === selectedStoreId);
-  const activeOrder = myOrders.find((o) => o.status !== "Delivered");
+  const activeOrder = myOrders.find(
+    (order) => order.status !== OrderStatus.DELIVERED,
+  );
 
   const handleArrived = () => {
-    toast.success("¡Tu repartidor ha llegado!", { duration: 6000 });
-    fetchMyOrders();
+    toast.success("Tu repartidor ha llegado.", { duration: 6000 });
+    void fetchMyOrders();
   };
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
-      <Navbar name={user?.name} role="Consumer" />
+      <Navbar name={user.name} role="Consumer" />
 
       <section className="bg-white w-full p-8 ">
         <div className="flex gap-4 w-full transition-all">
           <img
             src="https://images.pexels.com/photos/36990085/pexels-photo-36990085.jpeg"
-            className="object-cover h-125 flex-1 min-w-0 rounded-md hover:"
+            className="object-cover h-125 flex-1 min-w-0 rounded-md"
           />
           <img
             src="https://images.pexels.com/photos/36989857/pexels-photo-36989857.jpeg"
@@ -107,23 +112,12 @@ export default function Consumer() {
         <div className="flex items-center justify-between uppercase gap-4 text-5xl mt-4 h-full pb-16">
           {activeOrder ? (
             <>
-              {/* EL MAPA EN VIVO */}
-              <div className="w-3/4 h-full rounded-md">
+              <div className="w-3/4 h-[500px] rounded-md">
                 <LiveTracker order={activeOrder} onArrived={handleArrived} />
               </div>
 
-              {/* EL ESTADO DE LA ORDEN */}
-              <div className="bg-white shadow-sm w-1/4 h-full rounded-md border-2 border-black p-6 flex flex-col justify-center gap-4 text-center">
-                <h3 className="text-3xl font-bold text-black/50">Status</h3>
-                <div
-                  className={`text-4xl font-londrina p-4 rounded-md border-2 border-black ${
-                    activeOrder.status === "Delivery"
-                      ? "bg-yellow text-black"
-                      : "bg-blue text-white"
-                  }`}
-                >
-                  {activeOrder.status}
-                </div>
+              <div className="w-1/4 h-[500px]">
+                <TrackingOrderPanel order={activeOrder} title="Order" />
               </div>
             </>
           ) : (
@@ -162,8 +156,8 @@ export default function Consumer() {
         </section>
 
         <section>
-          <SectionHeader title={`${user?.name}'s orders`} />
-          <div className="flex flex-col gap-4">
+          <SectionHeader title={`${user.name}'s orders`} />
+          <div className="flex flex-col ">
             {myOrders.map((order) => (
               <OrderCard key={order.id} order={order} />
             ))}

@@ -1,6 +1,25 @@
 import Boom from '@hapi/boom';
 import { pool } from '../../config/database';
 import { CreateProductDTO, Product, UpdateProductDTO } from './product.types';
+import { NumericValue } from '../order/order.types';
+
+interface ProductRow {
+  id: NumericValue;
+  name: string;
+  price: NumericValue;
+  description: string;
+  storeId: NumericValue;
+  createdAt?: string;
+}
+
+const mapProductRow = (row: ProductRow): Product => ({
+  id: Number(row.id),
+  name: row.name,
+  price: Number(row.price),
+  description: row.description,
+  storeId: Number(row.storeId),
+  createdAt: row.createdAt,
+});
 
 const SELECT_PRODUCT = `
   SELECT id, name, price, description, store_id AS "storeId", created_at AS "createdAt"
@@ -11,43 +30,44 @@ export const getProductsService = async (
   storeId?: number
 ): Promise<Product[]> => {
   if (storeId) {
-    const { rows } = await pool.query(`${SELECT_PRODUCT} WHERE store_id = $1`, [
-      storeId,
-    ]);
-    return rows;
+    const { rows } = await pool.query<ProductRow>(
+      `${SELECT_PRODUCT} WHERE store_id = $1`,
+      [storeId]
+    );
+    return rows.map(mapProductRow);
   }
-  const { rows } = await pool.query(SELECT_PRODUCT);
-  return rows;
+  const { rows } = await pool.query<ProductRow>(SELECT_PRODUCT);
+  return rows.map(mapProductRow);
 };
 
 export const getProductByIdService = async (
   productId: number
 ): Promise<Product> => {
-  const { rows, rowCount } = await pool.query(
+  const { rows, rowCount } = await pool.query<ProductRow>(
     `${SELECT_PRODUCT} WHERE id = $1`,
     [productId]
   );
   if (rowCount === 0) throw Boom.notFound('Product not found');
-  return rows[0];
+  return mapProductRow(rows[0]);
 };
 
 export const createProductService = async (
   product: CreateProductDTO
 ): Promise<Product> => {
-  const { rows } = await pool.query(
+  const { rows } = await pool.query<ProductRow>(
     `INSERT INTO products (name, price, description, store_id)
      VALUES ($1, $2, $3, $4)
      RETURNING id, name, price, description, store_id AS "storeId", created_at AS "createdAt"`,
     [product.name, product.price, product.description, product.storeId]
   );
-  return rows[0];
+  return mapProductRow(rows[0]);
 };
 
 export const updateProductService = async (
   product: UpdateProductDTO,
   productId: number
 ): Promise<Product> => {
-  const { rows } = await pool.query(
+  const { rows } = await pool.query<ProductRow>(
     `UPDATE products
      SET
        name        = COALESCE($1, name),
@@ -62,7 +82,7 @@ export const updateProductService = async (
       productId,
     ]
   );
-  return rows[0];
+  return mapProductRow(rows[0]);
 };
 
 export const deleteProductService = async (

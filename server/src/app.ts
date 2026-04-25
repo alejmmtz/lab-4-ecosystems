@@ -15,13 +15,12 @@ app.get('/', (req, res) => {
   res.send('Hello, World. This backend is up baby!');
 });
 
-// Routes
 app.use('/api/order', orderRouter);
+app.use('/api/orders', orderRouter);
 app.use('/auth', authRouter);
 app.use('/api/product', productRouter);
 app.use('/api/store', storeRouter);
 
-// Error handling middleware
 app.use(errorsMiddleware);
 
 if (NODE_ENV !== 'production') {
